@@ -425,7 +425,8 @@ class BitmapProcessorApp:
 
                                 print("→ ", end="")
                         try:
-                            image_copy.putpixel((path[i][0], path[i][1]), (255, 0, 0))
+                            if i != 0:
+                                image_copy.putpixel((path[i][0], path[i][1]), (255, 100, 100))
                         except Exception as e:
                             print(f"Error putting pixel: {e}")
 
