@@ -7,41 +7,76 @@ Alunos:
 
 '''
 
+import heapq
 from PIL import Image
 from collections import deque
+from matplotlib import pyplot as plt
 
 class ImageGraph:
-    def __init__(self, image_path):
-        self.image = Image.open(image_path)
-        self.width, self.height = self.image.size
+    def __init__(self, image_paths):
+        
+        self.images = [Image.open(image_path) for image_path in image_paths]
+        self.width, self.height = self.images[0].size
         self.graph = {}
         self.number_of_edges = 0
         self.number_of_nodes = 0
-        self.green_pixel = None
+        self.green_pixels = []
         self.red_pixel = None
 
     def build_graph(self):
-        for x in range(self.width):
-            for y in range(self.height):
-                color = self.image.getpixel((x, y))
-                if color == (0, 255, 0):
-                    self.green_pixel = (x, y)
-                elif color == (255, 0, 0):
-                    self.red_pixel = (x, y)
+        for z, image in enumerate(self.images):
+            for x in range(self.width):
+                for y in range(self.height):
+                    color = image.getpixel((x, y))
+                    if color == (0, 255, 0):
+                        self.green_pixels.append((x, y, z))
+                    elif color == (255, 0, 0):
+                        self.red_pixel = (x, y, z)
                     
-                if color != (0, 0, 0):
-                    self.graph[(x, y)] = []
-                    self.number_of_nodes += 1
+                    if color != (0, 0, 0):
+                        self.graph[(x, y, z)] = {}
+                        self.number_of_nodes += 1
 
-        for x in range(self.width):
-            for y in range(self.height):
-                color = self.image.getpixel((x, y))
-                if color != (0, 0, 0):
-                    neighbors = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
-                    for neighbor in neighbors:
-                        if neighbor in self.graph and self.image.getpixel(neighbor) != (0, 0, 0):
-                            self.graph[(x, y)].append(neighbor)
-                            self.number_of_edges += 1
+        for z, image in enumerate(self.images):
+            for x in range(self.width):
+                for y in range(self.height):
+                    color = image.getpixel((x, y))
+                    if color != (0, 0, 0):
+                        neighbors = [(x-1, y, z), (x+1, y, z), (x, y-1, z), (x, y+1, z), (x, y, z-1), (x, y, z+1)]
+                        for neighbor in neighbors:
+                            if neighbor in self.graph and image.getpixel((x, y)) != (0, 0, 0):
+                                weight = self.calculate_weight(color, image.getpixel((neighbor[0], neighbor[1])), z != neighbor[2])
+                                self.graph[(x, y, z)][neighbor] = weight
+                                self.number_of_edges += 1
+
+    def calculate_weight(self, color1, color2, different_floor):
+        if different_floor:
+            return 5
+        elif color2 == (128, 128, 128):
+            return 4
+        elif color2 == (196, 196, 196):
+            return 2
+        else:
+            return 1
+                            
+    def plot_large_graph(self):
+        # Get the node positions
+        node_positions = list(self.graph.keys())
+
+        # Unzip the node positions
+        x, y = zip(*node_positions)
+
+        # Create a scatter plot of the node positions
+        plt.scatter(x, y, s=1)
+
+        # Show the plot
+        plt.show()
+
+    def visualize_graph(self):  
+        for node in self.graph:
+            for neighbor in self.graph[node]:
+                plt.plot([node[0], neighbor[0]], [node[1], neighbor[1]], color='black')
+        plt.show()
 
     def find_path(self, start, end):
         queue = deque([start])
@@ -68,3 +103,21 @@ class ImageGraph:
                     queue.append(neighbor)
 
         return None
+    
+    def dijkstra(self, s):
+        dist = {node: float("inf") for node in self.graph}
+        pred = {node: None for node in self.graph}
+        dist[s] = 0
+        Q = [(dist[s], s)]
+        u = None
+        while Q:
+            dist_u, u = heapq.heappop(Q)
+            if u in self.green_pixels:
+                return dist, pred, u
+            for v in self.graph[u]:
+                if dist[v] > dist_u + self.graph[u][v]:
+                    dist[v] = dist_u + self.graph[u][v]
+                    heapq.heappush(Q, (dist[v], v))
+                    pred[v] = u
+        return dist, pred, None
+
