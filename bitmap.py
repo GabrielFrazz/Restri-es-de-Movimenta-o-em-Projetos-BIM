@@ -11,6 +11,7 @@ import heapq
 from PIL import Image
 from collections import deque
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 class ImageGraph:
     def __init__(self, image_paths):
@@ -59,24 +60,6 @@ class ImageGraph:
         else:
             return 1
                             
-    def plot_large_graph(self):
-        # Get the node positions
-        node_positions = list(self.graph.keys())
-
-        # Unzip the node positions
-        x, y = zip(*node_positions)
-
-        # Create a scatter plot of the node positions
-        plt.scatter(x, y, s=1)
-
-        # Show the plot
-        plt.show()
-
-    def visualize_graph(self):  
-        for node in self.graph:
-            for neighbor in self.graph[node]:
-                plt.plot([node[0], neighbor[0]], [node[1], neighbor[1]], color='black')
-        plt.show()
 
     def find_path(self, start, end):
         queue = deque([start])

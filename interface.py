@@ -16,7 +16,7 @@ from tkinter import filedialog
 from tkinter import ttk
 import tkinter.messagebox as messagebox
 from PIL import Image, ImageTk
-from matplotlib import colors
+from matplotlib import colors, pyplot as plt
 from ttkthemes import ThemedTk
 from bitmap import ImageGraph
 import matplotlib.colors as mcolors
@@ -38,18 +38,64 @@ class BitmapProcessorApp:
         # Create a style
         style = ttk.Style()
         style.configure("TButton",
-                        foreground="midnight blue",
-                        background="lightgrey",
-                        font=("Helvetica", 16),
+                        foreground="blue",
+                        background="blue",
+                        font=("Helvetica", 14),
                         padding=10)
 
-        # Create a frame for the buttons
-        self.button_frame = tk.Frame(master)
-        self.button_frame.pack(pady=10)  
+        style = ttk.Style()
+        style.configure("LandingPage.TButton",
+                        foreground="gray",
+                        background="lightblue",
+                        font=("Helvetica", 14, "bold"))  # Set the style for the landing page buttons
+        
+        style.configure("Exit.TButton",
+                foreground="red",
+                background="red",
+                font=("Helvetica", 14, "bold"))  # Set the style for the exit button
+        
+        # Create a style for the labels
+        style.configure("Title.TLabel",
+                        foreground="black",
+                        font=("Arial", 20, "bold"))
 
-        # Create widgets
-        self.load_button = ttk.Button(self.button_frame, text="Load Bitmap", command=self.load_bitmap)
-        self.load_button.grid(row=0 , column=0, padx=5) 
+        style.configure("Subtitle.TLabel",
+                        foreground="#404040",
+                        font=("Arial", 16))
+
+        self.start_page_flag = True
+
+        # Get the background color of the master window
+        bg_color = master.cget('bg')
+
+        # Create a frame for the buttons
+        self.button_frame = tk.Frame(master, bg=bg_color)
+        self.button_frame.pack(pady=10)  
+        self.button_frame.pack_propagate(False)  # Prevent the frame from shrinking
+
+        # Create a frame for the buttons
+        self.button_frame2 = tk.Frame(master, bg=bg_color)
+        self.button_frame2.place(relx=0.5, rely=0.5, anchor='center')
+        
+
+        self.master.grid_rowconfigure(0, minsize=50)
+        self.master.grid_columnconfigure(0, minsize=50)
+
+        
+        self.title_label = ttk.Label(self.button_frame2, text="Bitmap Processor", style="Title.TLabel")
+        self.title_label.grid(row=0, column=0, padx=5, pady=5)  
+
+        self.subtitle_label = ttk.Label(self.button_frame2, text="A simple tool to process bitmaps", style="Subtitle.TLabel")
+        self.subtitle_label.grid(row=1, column=0, padx=5, pady=5)  
+
+        self.load_button = ttk.Button(self.button_frame2, text="Load Bitmap", command=self.load_bitmap, style="TButton" )
+        self.load_button.grid(row=2 , column=0, padx=5, pady=5) 
+        self.load_button.config(cursor="hand2")
+
+        self.exit_button = ttk.Button(self.button_frame2, text="Exit", command=self.master.destroy, style="Exit.TButton")
+        self.exit_button.grid(row=3 , column=0, padx=5, pady=5)
+        self.exit_button.config(cursor="hand2")
+
 
         # Create a StringVar for the loading message
         self.loading_message = tk.StringVar()
@@ -68,14 +114,15 @@ class BitmapProcessorApp:
         self.red_pixel = None
         self.green_pixel = None
         self.current_floor = 0
+        self.path = None
         self.scalling_factor = 1
 
     def load_bitmap(self):
         self.current_floor = 0
+
         file_path = filedialog.askopenfilenames(filetypes=[("Bitmap files", "*.bmp")])
         self.image_paths = list(file_path)
         if file_path:
-            self.start_page_flag = True
             # Start the loading operation in a separate thread
             threading.Thread(target=self.load_bitmap_thread, args=(file_path,)).start()
 
@@ -102,6 +149,7 @@ class BitmapProcessorApp:
 
         self.image_graph = ImageGraph(file_path)
         self.image_graph.build_graph()
+        self.path = None
 
         if self.image_graph.width < 500 or self.image_graph.height < 500:
             hd_width = 800
@@ -121,6 +169,12 @@ class BitmapProcessorApp:
         # Update the window size and display the bitmap
         self.master.geometry('1280x720')
         self.display_bitmap()
+
+        # Destroy the initial page
+        if self.start_page_flag is True:    
+            self.destroy_intial_page()
+
+        self.start_page_flag = False
 
         # Stop the loading animation
         self.stop_loading_animation()
@@ -147,17 +201,28 @@ class BitmapProcessorApp:
     def display_bitmap(self):
 
         if self.buttons_canva_flag is None:
+
+            self.load_button = ttk.Button(self.button_frame, text="Load Bitmap", command=self.load_bitmap)
+            self.load_button.grid(row=0 , column=0, padx=5) 
+            self.load_button.config(cursor="hand2")
             
             if self.scaling_factor == 1:
                 self.process_button = ttk.Button(self.button_frame, text="Process Pixels", command=self.process_pixels)
                 self.process_button.grid(row=0, column=1, padx=5)  
+                self.process_button.config(cursor="hand2")
 
-            self.reset_button = ttk.Button(self.button_frame, text="Reset", command=self.reset_pixels)
+            self.reset_button = ttk.Button(self.button_frame, text="Reset", command=self.reset_all)
             self.reset_button.grid(row=0, column=2, padx=5)  
+            self.reset_button.config(cursor="hand2")
 
-            if self.scaling_factor == 1:
-                self.show_graph_button = ttk.Button(self.button_frame, text="Show Graph", command=self.image_graph.plot_large_graph)
-                self.show_graph_button.grid(row=0, column=4, padx=5)
+            
+            self.show_graph_button = ttk.Button(self.button_frame, text="Plot Graph", command=self.plot_large_graph)
+            self.show_graph_button.grid(row=0, column=4, padx=5)
+            self.show_graph_button.config(cursor="hand2")
+
+            self.exit_button = ttk.Button(self.button_frame, text="Exit", command=self.master.destroy, style="Exit.TButton")
+            self.exit_button.grid(row=0 , column=5, padx=5)
+            self.exit_button.config(cursor="hand2")
 
             self.canvas = tk.Canvas(self.master, cursor="cross", bg='white', bd=2, relief='groove')
             self.canvas.pack(pady=10) 
@@ -168,6 +233,7 @@ class BitmapProcessorApp:
         if self.image_graph.green_pixels is not None and self.image_graph.red_pixel is not None:
             self.process_green_red_button = ttk.Button(self.button_frame, text="Process G/R", command=self.process_green_red_pixels)
             self.process_green_red_button.grid(row=0, column=3, padx=5) 
+            self.process_green_red_button.config(cursor="hand2")
 
         # Convert bitmap to Pillow Image
         self.original_images = [Image.open(image.filename) for image in self.image_graph.images]
@@ -189,15 +255,28 @@ class BitmapProcessorApp:
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.resized_images_tk[self.current_floor])
         self.canvas.image = self.resized_images_tk[self.current_floor]
 
+        style = ttk.Style()
+        style.configure("Next.TButton",
+                        foreground="green",
+                        background="green",
+                        font=("Helvetica", 14, "bold"))  # Set the color of the "Next Floor" button to green
+
+        style.configure("Previous.TButton",
+                        foreground="orange",
+                        background="orange",
+                        font=("Helvetica", 14, "bold"))  # Set the color of the "Previous Floor" button to red
+        
         # Add navigation buttons if they don't exist yet and there is more than one floor
         if len(self.image_graph.images) > 1:
             if not hasattr(self, 'next_button'):
-                self.next_button = ttk.Button(self.master, text="Next Floor", command=self.next_floor)
+                self.next_button = ttk.Button(self.master, text="Next Floor", command=self.next_floor, style="Next.TButton")
                 self.next_button.place(relx=0.9, rely=0.5, anchor='e')  # Place the button on the right side
+                self.next_button.config(cursor="hand2")
 
             if not hasattr(self, 'previous_button'):
-                self.previous_button = ttk.Button(self.master, text="Previous Floor", command=self.previous_floor)
+                self.previous_button = ttk.Button(self.master, text="Previous Floor", command=self.previous_floor, style="Previous.TButton")
                 self.previous_button.place(relx=0.1, rely=0.5, anchor='w')  # Place the button on the left side
+                self.previous_button.config(cursor="hand2")
 
         # Hide the "Previous Floor" button on the first floor
         if hasattr(self, 'previous_button'):
@@ -301,9 +380,14 @@ class BitmapProcessorApp:
     def reset(self):
         # Clear the canvas and reset the clicked pixels
         self.canvas.delete("all")
+        self.path = None
 
         # Redraw the bitmap
         self.display_bitmap()
+
+    def reset_all(self):
+        self.reset_pixels()
+        self.reset()
 
     def process_pixels(self):
         if self.start_pixel is None or self.end_pixel is None:
@@ -371,6 +455,8 @@ class BitmapProcessorApp:
 
     def process_green_red_pixels(self):
 
+        path = []
+
         if self.green_pixel is not None or self.red_pixel is not None:
             self.image_graph.green_pixels = self.green_pixel
             self.image_graph.red_pixel = self.red_pixel
@@ -384,7 +470,6 @@ class BitmapProcessorApp:
                 return
 
             # Reconstruct the path from red_pixel to first_green_pixel
-            path = []
             current = first_green_pixel
             while current is not None:
                 path.append(current)
@@ -395,6 +480,8 @@ class BitmapProcessorApp:
                 print("No path found.")
                 messagebox.showinfo("No Path", "No path found between the selected pixels.")
                 return
+            
+            self.path = path
             
             self.reset_pixels()
             
@@ -469,6 +556,51 @@ class BitmapProcessorApp:
             print("\nNumber of pixels in the path: ", len(path))
         else:
             print("\nPlease select start and end pixels.")
+
+    def plot_large_graph(self):
+        plt.close('all')
+        
+        # Get the node positions
+        node_positions = list(self.image_graph.graph.keys())
+
+        # Unzip the node positions
+        x, y, z = zip(*node_positions)
+
+        # Invert the y-axis
+        y = [-i for i in y]
+
+        # Create a 3D scatter plot of the node positions
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(x, y, z, s=15, c='red')  # Increase point size and change color
+
+
+        if self.path is not None:
+            # Draw the path
+            for i in range(len(self.path) - 1):
+                start_node = self.path[i]
+                end_node = self.path[i + 1]
+
+                # Invert the y-coordinates of the start and end nodes
+                start_node = (start_node[0], -start_node[1], start_node[2])
+                end_node = (end_node[0], -end_node[1], end_node[2])
+
+                ax.plot([start_node[0], end_node[0]], [start_node[1], end_node[1]], [start_node[2], end_node[2]], color='blue', linewidth=3)
+
+        # Add labels and title
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_title('3D Scatter Plot')
+
+        # Show the plot
+        plt.show()
+
+    def destroy_intial_page(self):
+        if self.button_frame2 is not None:
+            self.button_frame2.destroy()
+            self.button_frame2 = None
+        
 
 
 
