@@ -85,7 +85,7 @@ class BitmapProcessorApp:
         self.title_label = ttk.Label(self.button_frame2, text="Bitmap Processor", style="Title.TLabel")
         self.title_label.grid(row=0, column=0, padx=5, pady=5)  
 
-        self.subtitle_label = ttk.Label(self.button_frame2, text="A simple tool to process bitmaps", style="Subtitle.TLabel")
+        self.subtitle_label = ttk.Label(self.button_frame2, text="A tool to process bitmaps", style="Subtitle.TLabel")
         self.subtitle_label.grid(row=1, column=0, padx=5, pady=5)  
 
         self.load_button = ttk.Button(self.button_frame2, text="Load Bitmap", command=self.load_bitmap, style="TButton" )
@@ -227,7 +227,8 @@ class BitmapProcessorApp:
             self.canvas = tk.Canvas(self.master, cursor="cross", bg='white', bd=2, relief='groove')
             self.canvas.pack(pady=10) 
 
-            self.canvas.bind("<Button-1>", self.on_pixel_click)  # Bind left mouse click event
+            if self.scaling_factor == 1:
+                self.canvas.bind("<Button-1>", self.on_pixel_click)  # Bind left mouse click event
             self.buttons_canva_flag = True
 
         if self.image_graph.green_pixels is not None and self.image_graph.red_pixel is not None:
@@ -465,8 +466,8 @@ class BitmapProcessorApp:
             dist, pred, first_green_pixel = self.image_graph.dijkstra(self.image_graph.red_pixel)
 
             if first_green_pixel is None:
-                print("No green pixel found.")
-                messagebox.showinfo("No Green Pixel", "No green pixel found in the image.")
+                print("No green pixel reached.")
+                messagebox.showinfo("No Green Pixel", "No green pixel reached.")
                 return
 
             # Reconstruct the path from red_pixel to first_green_pixel
@@ -509,11 +510,18 @@ class BitmapProcessorApp:
                             if path[i][0] > path[i+1][0]:
                                 print("← ", end="")
                             else:
-
                                 print("→ ", end="")
                         try:
                             if i != 0:
-                                image_copy.putpixel((path[i][0], path[i][1]), (255, 100, 100))
+                                # Iterate over the area around the pixel
+                                for dx in range(self.image_graph.red_area_width):
+                                    for dy in range(self.image_graph.red_area_height):
+                                        # Put the pixel if it is within the image boundaries
+                                        x, y = path[i][0] - dx, path[i][1] - dy
+                                        if (0 <= x < self.image_graph.width and 0 <= y < self.image_graph.height and  (x, y, image_index) not in self.image_graph.red_pixels):
+                                            image_copy.putpixel((x, y), (255, 100, 100))
+                        except Exception as e:
+                            print(f"Error putting pixel: {e}")
                         except Exception as e:
                             print(f"Error putting pixel: {e}")
 
@@ -560,6 +568,7 @@ class BitmapProcessorApp:
     def plot_large_graph(self):
         plt.close('all')
         
+        
         # Get the node positions
         node_positions = list(self.image_graph.graph.keys())
 
@@ -569,11 +578,10 @@ class BitmapProcessorApp:
         # Invert the y-axis
         y = [-i for i in y]
 
-        # Create a 3D scatter plot of the node positions
-        fig = plt.figure()
+        # Create a 3D scatter plot of the node positions with improved settings
+        fig = plt.figure(figsize=(10, 8))
         ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(x, y, z, s=15, c='red')  # Increase point size and change color
-
+        ax.scatter(x, y, z, s=15, c='blue', alpha=0.5, edgecolors='k')  # Improved scatter plot settings
 
         if self.path is not None:
             # Draw the path
@@ -585,16 +593,30 @@ class BitmapProcessorApp:
                 start_node = (start_node[0], -start_node[1], start_node[2])
                 end_node = (end_node[0], -end_node[1], end_node[2])
 
-                ax.plot([start_node[0], end_node[0]], [start_node[1], end_node[1]], [start_node[2], end_node[2]], color='blue', linewidth=3)
+                ax.plot([start_node[0], end_node[0]], [start_node[1], end_node[1]], [start_node[2], end_node[2]], color='red', linewidth=5, alpha = 1)  # Use red color for the path
 
         # Add labels and title
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        ax.set_title('3D Scatter Plot')
+        ax.set_title('3D Scatter Plot with Slices')
+
+        # Add grid lines for better orientation
+        ax.grid(True)
+
+        # Add slices for each unique Z-coordinate
+        unique_z_values = set(z)
+        for height in unique_z_values:
+            # Find indices of nodes with the specified height
+            indices = [i for i, z_val in enumerate(z) if z_val == height]
+
+            # Create a 2D scatter plot for the slice with different color and transparency
+            ax.scatter([x[i] for i in indices], [y[i] for i in indices], [z[i] for i in indices], s=30, c='green', alpha=0.8, edgecolors='k')  # Improved slice settings
 
         # Show the plot
         plt.show()
+
+
 
     def destroy_intial_page(self):
         if self.button_frame2 is not None:

@@ -23,6 +23,10 @@ class ImageGraph:
         self.number_of_nodes = 0
         self.green_pixels = []
         self.red_pixel = None
+        self.red_pixels = []
+        self.rotations = []
+        self.red_area_height = 0
+        self.red_area_width = 0
 
     def build_graph(self):
         for z, image in enumerate(self.images):
@@ -32,7 +36,9 @@ class ImageGraph:
                     if color == (0, 255, 0):
                         self.green_pixels.append((x, y, z))
                     elif color == (255, 0, 0):
+                        print(x, y, z)
                         self.red_pixel = (x, y, z)
+                        self.red_pixels.append((x, y, z))
                     
                     if color != (0, 0, 0):
                         self.graph[(x, y, z)] = {}
@@ -50,6 +56,8 @@ class ImageGraph:
                                 self.graph[(x, y, z)][neighbor] = weight
                                 self.number_of_edges += 1
 
+        self.red_area(self.red_pixel)
+
     def calculate_weight(self, color1, color2, different_floor):
         if different_floor:
             return 5
@@ -59,6 +67,33 @@ class ImageGraph:
             return 2
         else:
             return 1
+
+    def red_area(self,node):
+        decrease_x = 1
+        increase_y = 1
+
+        x, y = node[0], node[1]
+
+        while(1):
+            if self.images[node[2]].getpixel((x-decrease_x, y)) == (255, 0, 0):
+                decrease_x += 1
+                self.red_area_width += 1
+            else:
+                break
+
+        x, y = node[0], node[1]
+
+        while(1):
+            if self.images[node[2]].getpixel((x, y-increase_y)) == (255, 0, 0):
+                increase_y += 1
+                self.red_area_height += 1
+            else:
+                break
+
+        self.red_area_width += 1
+        self.red_area_height += 1
+
+        print(self.red_area_width, self.red_area_height);
                             
 
     def find_path(self, start, end):
@@ -70,7 +105,7 @@ class ImageGraph:
         while queue:
             current_point = queue.popleft()
             if current_point == end:
-                path = []
+                path = [] 
                 while current_point != start:
                     path.append(current_point)
                     current_point = predecessors[current_point]
@@ -98,9 +133,39 @@ class ImageGraph:
             if u in self.green_pixels:
                 return dist, pred, u
             for v in self.graph[u]:
+
+                if not self.is_valid_area(v):
+                    continue
+
+                
                 if dist[v] > dist_u + self.graph[u][v]:
                     dist[v] = dist_u + self.graph[u][v]
                     heapq.heappush(Q, (dist[v], v))
                     pred[v] = u
         return dist, pred, None
+    
+    def is_valid_area(self, v):
+        # given a v node, tests if the pixels around it are not black
+        for i in range(v[0], v[0] - self.red_area_width, -1):
+            for j in range(v[1], v[1] - self.red_area_height, -1):
+                if self.images[v[2]].getpixel((i, j)) == (0, 0, 0):
+                    return False
+                if i > self.width or i < 0 or j > self.height or j < 0:
+                    return False
+        # checks below the pixel imedialety below the node
+        if self.images[v[2]].getpixel((v[0], v[1] - 1)) == (0, 0, 0):
+            return False
+        return True
+    
+    def rotate(self):
+        temp = self.red_area_width
+        self.red_area_width = self.red_area_height
+        self.red_area_height = temp
 
+    def is_valid_area_with_rotation(self, v):
+        if not self.is_valid_area(v):
+            self.rotate()
+        if not self.is_valid_area(v):
+            self.rotate()
+            return False
+        return True
