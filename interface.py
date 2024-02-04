@@ -1,5 +1,5 @@
 '''     
-Trabalho_1 - Teoria dos Grafos
+Trabalho_2 - Teoria dos Grafos
 
 Alunos: 
 * Carlos Gabriel de Oliveira Frazão - 22.1.8100
@@ -159,6 +159,8 @@ class BitmapProcessorApp:
             self.scaling_factor = int(min(width_scale, height_scale)) 
         else:
             self.scaling_factor = 1
+
+        print("\n-------------------------------------------------------------------\n\n")
 
         print(">>>>>>> graph info <<<<<<<\n")
         #print the number of nodes and edges
@@ -505,7 +507,8 @@ class BitmapProcessorApp:
                             if path[i][1] > path[i+1][1]:
                                 print("↑ ", end="")
                             else:
-                                print("↓ ", end="")
+                                if path[i+1][2] == image_index:
+                                    print("↓ ", end="")
                         else:
                             if path[i][0] > path[i+1][0]:
                                 print("← ", end="")

@@ -1,5 +1,5 @@
 '''     
-Trabalho-1 de Teoria dos Grafos
+Trabalho-2 de Teoria dos Grafos
 
 Alunos: 
 * Carlos Gabriel de Oliveira Frazão - 22.1.8100
@@ -36,7 +36,6 @@ class ImageGraph:
                     if color == (0, 255, 0):
                         self.green_pixels.append((x, y, z))
                     elif color == (255, 0, 0):
-                        print(x, y, z)
                         self.red_pixel = (x, y, z)
                         self.red_pixels.append((x, y, z))
                     
@@ -92,8 +91,6 @@ class ImageGraph:
 
         self.red_area_width += 1
         self.red_area_height += 1
-
-        print(self.red_area_width, self.red_area_height);
                             
 
     def find_path(self, start, end):
@@ -137,7 +134,7 @@ class ImageGraph:
                 if not self.is_valid_area(v):
                     continue
 
-                
+
                 if dist[v] > dist_u + self.graph[u][v]:
                     dist[v] = dist_u + self.graph[u][v]
                     heapq.heappush(Q, (dist[v], v))
