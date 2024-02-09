@@ -234,7 +234,7 @@ class BitmapProcessorApp:
             self.buttons_canva_flag = True
 
         if self.image_graph.green_pixels is not None and self.image_graph.red_pixel is not None:
-            self.process_green_red_button = ttk.Button(self.button_frame, text="Process G/R", command=self.process_green_red_pixels)
+            self.process_green_red_button = ttk.Button(self.button_frame, text="Process Path", command=self.process_green_red_pixels)
             self.process_green_red_button.grid(row=0, column=3, padx=5) 
             self.process_green_red_button.config(cursor="hand2")
 
